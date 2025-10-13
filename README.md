@@ -1,8 +1,6 @@
 # OF-TransUNet
 
-Official implementation of "Minimally Invasive Single-Block Transformer 
-Integration with Output-Focused Progressive Unfreezing for Liver Tumor 
-CT Segmentation"
+Official implementation of "Efficient Transformer Integration in nnU-Net Boosts Liver Tumor Segmentation: An External Validation Study"
 
 **Status**: Code will be released upon manuscript acceptance.
 
