@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Supplementary Note Sx</title>
+  <style>
+    body {
+      font-family: "Times New Roman", serif;
+      margin: 24px;
+      color: #000;
+      line-height: 1.5;
+      font-size: 13px;
+    }
+    .title {
+      font-weight: bold;
+      font-size: 15px;
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-weight: bold;
+      margin-top: 12px;
+      margin-bottom: 4px;
+    }
+    p {
+      margin: 6px 0;
+      text-align: justify;
+    }
+    ul {
+      margin: 6px 0 6px 20px;
+    }
+    li {
+      margin: 4px 0;
+    }
+    .mono {
+      font-family: Consolas, monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="title">
+    Supplementary Note Sx. Definition of staged Transformer unfreezing schedules
+  </div>
+
+  <p>
+    To improve implementation transparency, we summarize here how the staged unfreezing schedules were defined in the internal development experiments.
+  </p>
+
+  <div class="section-title">No Fine-tuning</div>
+  <p>
+    The inserted Conv-Transformer remained frozen throughout training, and only the nnU-Net backbone and decoder were updated.
+  </p>
+
+  <div class="section-title">Full Fine-tuning</div>
+  <p>
+    All Transformer parameter groups were trainable from the beginning of training, without any frozen stabilization phase.
+  </p>
+
+  <div class="section-title">Simple Progressive</div>
+  <p>
+    In the Simple Progressive schedule, the inserted Transformer was partitioned into four predefined parameter groups in the implementation and released sequentially in the default order
+    <span class="mono">[1, 2, 3, 4]</span>.
+    The Transformer remained frozen for epochs 0–69, after which one parameter group was released every 20 epochs, corresponding to release onsets at epochs 70, 90, 110, and 130.
+  </p>
+
+  <div class="section-title">Output-Focused (final)</div>
+  <p>
+    In the final implemented OF-TransUNet schedule, the Transformer remained frozen through epochs 0–89. At epoch 90, output-side Transformer components began to be released, and the optimizer was reconfigured to include the newly trainable parameters. A short Transformer-specific warmup was then applied during epochs 90–94, increasing the Transformer branch learning rate from 0.000090 to 0.000450.
+  </p>
+
+  <p>
+    Additional optimizer reconfiguration events were observed later in training as newly trainable Transformer parameters were incorporated. However, the preserved archived logs consistently documented output-side release events rather than a fully enumerated mapping of later releases to individual internal Transformer sublayers or block-depth groups. Accordingly, the final OF-TransUNet schedule is described as an empirically implemented output-focused staged adaptation strategy rather than as a strictly layer-wise protocol.
+  </p>
+
+  <div class="section-title">Interpretive note</div>
+  <p>
+    The output-focused schedule should therefore be understood as prioritizing output-proximal Transformer components during staged release, with clearly documented epoch boundaries for the initial frozen phase and warmup phase, but without over-interpreting later internal subdivision beyond what was retained in the archived training logs.
+  </p>
+</body>
+</html>
