@@ -7,16 +7,23 @@ Official repository for the manuscript:
 ## Repository status
 
 This manuscript is currently **under review** at *BMC Medical Imaging*.  
-To support transparency during peer review, this repository has been created in advance.
+To support transparency during peer review, this repository has been made publicly available in advance of acceptance.
 
-**Current status:** the full source code is still being cleaned, documented, and organized.  
-**Planned release:** complete code and reproducibility materials will be released upon manuscript acceptance.
+**Current status:** The core trainer implementation (`nnUNetTrainerTransUNet.py`) is provided for peer review transparency. Full documentation, inference scripts, and pretrained weights will be finalized upon manuscript acceptance.  
+**Planned release:** Complete reproducibility materials will be released upon acceptance.
+
+---
+
+## Source code
+
+- **`nnUNetTrainerTransUNet.py`** — Core trainer implementation (provided for peer review transparency).  
+  This file contains the complete OF-TransUNet architecture and output-focused progressive unfreezing schedule as described in the manuscript.
 
 ---
 
 ## Correspondence to manuscript
 
-The following table documents the direct correspondence between key implementation details in the code and the descriptions in the manuscript.
+The following tables document the direct correspondence between key implementation details in the code and the descriptions in the manuscript.
 
 ### Architecture insertion
 
@@ -26,25 +33,25 @@ The following table documents the direct correspondence between key implementati
 | Lightweight convolutional self-attention (QKV projection) | `CustomTransformer.qkv` in `create_custom_transformer` | `Conv2d(hidden_dim, hidden_dim * 3, kernel_size=1)` |
 | Convolutional FFN | `CustomTransformer.conv2` / `conv3` | `Conv2d(hidden_dim, hidden_dim * 4, ...)` → `Conv2d(hidden_dim * 4, hidden_dim, ...)` |
 | Output-side residual mapping (`final`) | `CustomTransformer.final` | `Conv2d(hidden_dim, in_channels, kernel_size=3, padding=1)` |
-| Input residual connection | `forward`: `out = out + x` | skip connection to input feature map |
+| Input residual connection | `forward`: `out = out + x` | Global skip connection to input feature map |
 
 ### Output-focused progressive unfreezing schedule
 
 The `layer_groups` dictionary in `nnUNetTrainerTransUNet.__init__` directly implements the output-focused unfreezing schedule described in the manuscript:
 
-| Group ID | Released components | Manuscript description |
-|---|---|---|
-| 1 | `["final"]` | Output-side mapping component; released **first** at epoch 90 |
-| 2 | `["final", "conv2", "conv3"]` | FFN components added |
-| 3 | `["qkv", "proj"]` | Attention projection components added |
-| 4 | `["all"]` | Full unfreezing |
+| Group ID | Released components | Epoch triggered | Manuscript description |
+|---|---|---|---|
+| 1 | `["final"]` | Epoch 90 | Output-side mapping component; released **first** |
+| 2 | `["final", "conv2", "conv3"]` | Epoch 110 | FFN components added |
+| 3 | `["qkv", "proj"]` | Epoch 130 | Attention projection components added |
+| 4 | `["all"]` | Epoch 150+ | Full unfreezing |
 
 ```python
 self.layer_groups = {
-    1: ["final"],               # output-side mapping, released first
-    2: ["final", "conv2", "conv3"],  # FFN components
-    3: ["qkv", "proj"],         # attention projections
-    4: ["all"]                  # full unfreezing
+    1: ["final"],                       # output-side mapping, released first
+    2: ["final", "conv2", "conv3"],     # FFN components
+    3: ["qkv", "proj"],                 # attention projections
+    4: ["all"]                          # full unfreezing
 }
 ```
 
@@ -67,28 +74,33 @@ self.layer_groups = {
 | Transformer LR factor after unfreezing | `self.unfreeze_lr_factor` | `0.1` (i.e., 1e-3) |
 | NaN/Inf handling | `handle_nan_in_loss` + gradient check in `train_step` | LR halved after 3 consecutive NaN events |
 
+### Note on TransUNetEncoder
+
+The file imports `TransUNetEncoder` via a conditional `try/except` block. This fallback encoder is only invoked when `use_custom_transformer=False`, which requires sufficiently large feature map spatial dimensions. **In all reported experiments, the custom Conv-Transformer path (`create_custom_transformer`) was used exclusively.** The `TransUNetEncoder` branch was not exercised in the results reported in the manuscript.
+
 ---
 
-## Current public contents
+## Currently available files
 
-At the current review stage, this repository provides:
+| File | Description |
+|---|---|
+| `nnUNetTrainerTransUNet.py` | Core trainer — OF-TransUNet architecture and unfreezing schedule |
+| `Supplementary Note S2. Definition of staged Transformer unfreezing schedules` | Clarifies all four unfreezing schedule variants evaluated in ablation |
+| `requirements.txt` | Full dependency list |
+| `LICENSE` | MIT license |
 
-- Project-level metadata
-- License information
-- A supplementary implementation note describing the staged Transformer unfreezing schedules
-- Environment summary and dependency information
-- Planned reproducibility notes
+---
 
-## Currently available note
+## Supplementary Note S2
 
-- **Supplementary Note S2. Definition of staged Transformer unfreezing schedules**
+**Definition of staged Transformer unfreezing schedules**
 
-This note clarifies:
+This note clarifies the four schedule variants evaluated in internal ablation:
 
 - No Fine-tuning
 - Full Fine-tuning
 - Simple Progressive schedule
-- Final Output-Focused schedule
+- Final Output-Focused schedule (OF-TransUNet)
 - Epoch boundaries and warmup details used in the archived implementation logs
 
 ---
@@ -97,14 +109,12 @@ This note clarifies:
 
 The full release is expected to include:
 
-- Complete model implementation
+- Complete model implementation with documentation
 - nnU-Net v2-based training pipeline
-- OF-TransUNet architecture definition (`nnUNetTrainerTransUNet`)
 - Training and inference scripts
-- Staged unfreezing / adaptation logic
 - Evaluation scripts for segmentation and lesion-level detection
 - Pretrained model weights
-- Documentation for reproducing the main tables in the manuscript
+- Step-by-step instructions for reproducing the main tables in the manuscript
 
 ---
 
@@ -128,18 +138,6 @@ Primary development environment used in this study:
 | pandas | 2.2.3 |
 
 A more detailed dependency list is provided in `requirements.txt`.
-
----
-
-## Reproducibility note
-
-After acceptance, the repository will include step-by-step instructions for reproducing the manuscript results, including:
-
-- Preprocessing and training setup
-- Inference commands
-- Lesion-level detection analysis
-- Computational profiling
-- Generation of the main quantitative results reported in Tables 1–3
 
 ---
 
